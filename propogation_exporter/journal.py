@@ -1,6 +1,7 @@
 import logging
 import select
-from systemd.journal import Reader, LOG_INFO, APPEND  # type: ignore[import-untyped]
+
+from systemd.journal import APPEND, LOG_INFO, Reader  # type: ignore[import-untyped]
 
 from .zone import ZoneManager
 

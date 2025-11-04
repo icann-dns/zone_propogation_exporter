@@ -61,3 +61,4 @@ jobs:
           name: coverage-xml
           path: coverage.xml
           if-no-files-found: warn
+          if_error: false

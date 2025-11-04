@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "propogation-exporter"
 version = "0.1.0"
@@ -5,8 +9,7 @@ description = "Systemd journal reader and exporter"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    # systemd bindings are only available on Linux where libsystemd is present
-    "systemd-python>=234; sys_platform == 'linux'",
+    "systemd-python>=234",
     "dnspython==1.15.0",
     "PyYAML>=5.4.1,<6.0",
     "prometheus-client>=0.1.0,<1.0",
@@ -18,28 +21,26 @@ propogation-exporter = "propogation_exporter.cli:main"
 [tool.mypy]
 python_version = "3.8"
 strict = false
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 174fe1d (switch to using uv for testing)
+
+[tool.coverage.run]
+omit = [
+    "propogation_exporter/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
 
 [project.optional-dependencies]
-# Development/testing dependencies to be installed via uv extras:
-#   uv sync --extra dev
 dev = [
-<<<<<<< HEAD
     "pytest",
     "pytest-cov",
+    "pytest-timeout",
     "flake8",
     "mypy",
     "types-PyYAML",
 ]
->>>>>>> 716461a (fix issues with types)
-=======
-    "pytest>=8",
-    "pytest-cov>=4",
-    "flake8>=6",
-    "mypy>=1.7",
-]
->>>>>>> 174fe1d (switch to using uv for testing)

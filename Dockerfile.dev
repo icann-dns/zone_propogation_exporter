@@ -1,0 +1,27 @@
+# Multi-stage Dockerfile for testing with different Python versions
+ARG PYTHON_VERSION=3.12
+FROM python:${PYTHON_VERSION}-slim
+
+# Install systemd development libraries
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libsystemd-dev \
+    pkg-config \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Sync dependencies
+RUN uv sync --extra dev
+
+# Default command opens a shell for interactive testing
+CMD ["/bin/bash"]

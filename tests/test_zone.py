@@ -1,0 +1,275 @@
+from datetime import datetime, timedelta
+from pathlib import Path
+from textwrap import dedent
+from typing import Any, Dict
+from unittest.mock import MagicMock, patch
+
+import propogation_exporter.metrics as metrics
+from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+
+
+def make_zone_manager_single(zone_name: str = "example.com.") -> ZoneManager:
+    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    downstream = [
+        ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.2"),
+        ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.3"),
+    ]
+    zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=downstream)
+    return ZoneManager({zone_name: zc})
+
+
+def test_load_from_file_parses_config(tmp_path: Path):
+    yaml_text = dedent(
+        f"""
+        zones:
+          example.com.:
+            primary_nameserver: 192.0.2.10
+            downstream_nameservers:
+              - 192.0.2.11
+              - 192.0.2.12
+        """
+    )
+    cfg = tmp_path / "zones.yaml"
+    cfg.write_text(yaml_text)
+    with patch("propogation_exporter.zone.DNSChecker.get_dns_name", side_effect=lambda x: x):
+        zm = ZoneManager.load_from_file(cfg)
+    assert "example.com." in zm.zones
+    zc = zm.zones["example.com."]
+    assert zc.primary_nameserver.name_server == "192.0.2.10"
+    assert [ns.name_server for ns in zc.downstream_nameservers] == ["192.0.2.11", "192.0.2.12"]
+    assert zc.rr_count == 0
+
+
+def test_parse_zone_info_updates_zone_and_metrics():
+    zm = make_zone_manager_single()
+    entry = {
+        "MESSAGE": "[STATS] example.com. 2025010101 RR[count=5 time=0(sec)] other text",
+        "__REALTIME_TIMESTAMP": datetime.now(),
+    }
+    zc = zm.parse_zone_info(entry)
+    assert zc.rr_count == 5
+    assert zc.has_rr_count is True
+    assert zc.primary_nameserver.serial == 2025010101
+    assert zc.synced is False
+
+    # Metrics were touched; ensure gauge has the label value set (non-zero number of samples)
+    samples = []
+    for fam in metrics.zone_in_sync.collect():
+        for s in fam.samples:
+            if s.name == "zone_in_sync" and s.labels.get("zone") == "example.com.":
+                samples.append(s)
+    assert samples, "Expected at least one sample for zone_in_sync with example.com. labels"
+
+
+@patch("propogation_exporter.zone.metrics.zone_propagation_delay")
+@patch("propogation_exporter.zone.DNSChecker.resolve_soa_serial")
+@patch("time.sleep", return_value=None)
+def test_check_downstream_propagation_eventually_syncs(mock_sleep: MagicMock, mock_resolve: MagicMock, mock_delay_gauge: MagicMock):
+    zone_name = "example.com."
+    zm = make_zone_manager_single(zone_name)
+    zc = zm.zones[zone_name]
+
+    # Set a primary serial and update time
+    zc.primary_nameserver.serial = 100
+    zc.primary_nameserver.update_time = datetime.now() - timedelta(seconds=1)
+
+    # Side-effect per nameserver: ns2 immediately matches, ns3 after two tries
+    call_state: Dict[str, int] = {"192.0.2.2": 0, "192.0.2.3": 0}
+
+    def side_effect(zone: str, ns: str, **kwargs: Any):
+        if ns == "192.0.2.2":
+            return 100
+        # For 192.0.2.3, return None on first call, wrong serial on second, then 100
+        count = call_state[ns]
+        call_state[ns] += 1
+        if count == 0:
+            return None
+        if count == 1:
+            return 99
+        return 100
+
+    mock_resolve.side_effect = side_effect
+
+    # Run propagation check (no sleep due to patch)
+    zc.check_downstream_propagation()
+
+    assert zc.synced is True
+    assert all(ns.serial == 100 for ns in zc.downstream_nameservers)
+
+
+def test_update_metrics_skips_until_rr_count():
+    zm = make_zone_manager_single()
+    # Initially has_rr_count is False; update_metrics should not crash
+    zm.update_metrics()
+
+    # After setting rr_count and has_rr_count True, update should publish
+    zc = zm.zones["example.com."]
+    zc.rr_count = 7
+    zc.has_rr_count = True
+    zc.synced = True
+    zm.update_metrics()
+
+    # Validate a sample exists for zone_rr_count
+    samples = []
+    for fam in metrics.zone_rr_count.collect():
+        for s in fam.samples:
+            if s.name == "zone_rr_count" and s.labels.get("zone") == "example.com.":
+                samples.append(s)
+    assert samples, "Expected at least one sample for zone_rr_count with example.com. labels"
+
+
+def test_zone_manager_custom_regex_string():
+    """Test ZoneManager with custom regex as string."""
+    custom_regex = r"^\[CUSTOM\]\s+(?P<zone>\S+)\s+(?P<serial>\d+)\s+RR\[count=(?P<rr_count>\d+)"
+    zm = make_zone_manager_single()
+    zm2 = ZoneManager(zm.zones, zone_stats_regex=custom_regex)
+    assert zm2.zone_stats_regex.pattern == custom_regex
+
+
+def test_zone_manager_custom_regex_compiled():
+    """Test ZoneManager with pre-compiled regex Pattern."""
+    import re
+    custom_pattern = re.compile(r"^\[CUSTOM\]\s+(?P<zone>\S+)\s+(?P<serial>\d+)\s+RR\[count=(?P<rr_count>\d+)")
+    zm = make_zone_manager_single()
+    zm2 = ZoneManager(zm.zones, zone_stats_regex=custom_pattern)
+    assert zm2.zone_stats_regex == custom_pattern
+
+
+def test_parse_zone_info_unknown_zone_raises():
+    """Test that parsing an entry for an unknown zone raises ValueError."""
+    zm = make_zone_manager_single("example.com.")
+    entry = {
+        "MESSAGE": "[STATS] unknown.zone. 2025010101 RR[count=5 time=0(sec)]",
+        "__REALTIME_TIMESTAMP": datetime.now(),
+    }
+    try:
+        zm.parse_zone_info(entry)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "not found in zone configurations" in str(e)
+
+
+def test_parse_zone_info_no_match_raises():
+    """Test that parsing an entry that doesn't match regex raises ValueError."""
+    zm = make_zone_manager_single()
+    entry = {
+        "MESSAGE": "This does not match the pattern",
+        "__REALTIME_TIMESTAMP": datetime.now(),
+    }
+    try:
+        zm.parse_zone_info(entry)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "did not match stats regex" in str(e)
+
+
+def test_start_propagation_check_thread_already_running():
+    """Test that start_propagation_check doesn't restart if thread is alive."""
+    zm = make_zone_manager_single()
+    zc = zm.zones["example.com."]
+
+    # Create a mock thread that reports as alive
+    mock_thread = MagicMock()
+    mock_thread.is_alive.return_value = True
+    zm.workers["example.com."] = mock_thread
+
+    # Try to start again - should not create a new thread
+    with patch("threading.Thread") as mock_thread_class:
+        zm.start_propagation_check(zc)
+        # Thread constructor should not be called since thread is alive
+        mock_thread_class.assert_not_called()
+
+
+def test_start_propagation_check_creates_new_thread():
+    """Test that start_propagation_check creates and starts a new thread (lines 205-212)."""
+    zm = make_zone_manager_single()
+    zc = zm.zones["example.com."]
+
+    # No existing thread
+    assert "example.com." not in zm.workers
+
+    with patch("threading.Thread") as mock_thread_class:
+        mock_thread_instance = MagicMock()
+        mock_thread_class.return_value = mock_thread_instance
+
+        zm.start_propagation_check(zc)
+
+        # Verify thread was created with correct parameters
+        mock_thread_class.assert_called_once()
+        call_kwargs = mock_thread_class.call_args[1]
+        assert call_kwargs['target'] == zc.check_downstream_propagation
+        assert call_kwargs['name'] == 'propagate-example.com.'
+        assert call_kwargs['daemon'] is True
+
+        # Verify thread was started
+        mock_thread_instance.start.assert_called_once()
+
+        # Verify thread was stored
+        assert zm.workers["example.com."] == mock_thread_instance
+
+
+def test_start_propagation_check_restarts_dead_thread():
+    """Test that start_propagation_check restarts a dead thread."""
+    zm = make_zone_manager_single()
+    zc = zm.zones["example.com."]
+
+    # Create a dead thread
+    dead_thread = MagicMock()
+    dead_thread.is_alive.return_value = False
+    zm.workers["example.com."] = dead_thread
+
+    with patch("threading.Thread") as mock_thread_class:
+        mock_new_thread = MagicMock()
+        mock_thread_class.return_value = mock_new_thread
+
+        zm.start_propagation_check(zc)
+
+        # Should create a new thread even though one existed
+        mock_thread_class.assert_called_once()
+        mock_new_thread.start.assert_called_once()
+
+        # Old dead thread should be replaced
+        assert zm.workers["example.com."] == mock_new_thread
+        assert zm.workers["example.com."] != dead_thread
+
+
+@patch("time.sleep", return_value=None)
+def test_start_metrics_updater(mock_sleep: MagicMock):
+    """Test that metrics updater thread starts."""
+    zm = make_zone_manager_single()
+
+    # Patch the infinite loop to exit after one iteration
+    original_update = zm.update_metrics
+    call_count = [0]
+
+    def update_once():
+        call_count[0] += 1
+        original_update()
+        if call_count[0] >= 1:
+            # Force thread to exit
+            raise KeyboardInterrupt()
+
+    with patch.object(zm, 'update_metrics', side_effect=update_once):
+        zm.start_metrics_updater(interval=1)
+        # Give thread a moment to start and run
+        import time
+        time.sleep(0.1)
+
+    # Verify thread was created (accessing protected member for test)
+    assert zm._metrics_thread is not None  # type: ignore[attr-defined]
+    assert call_count[0] >= 1
+
+
+def test_start_metrics_updater_already_running():
+    """Test that start_metrics_updater doesn't restart if already running."""
+    zm = make_zone_manager_single()
+
+    # Create a mock thread that reports as alive
+    mock_thread = MagicMock()
+    mock_thread.is_alive.return_value = True
+    zm._metrics_thread = mock_thread  # type: ignore[attr-defined]
+
+    with patch("threading.Thread") as mock_thread_class:
+        zm.start_metrics_updater()
+        # Should not create new thread
+        mock_thread_class.assert_not_called()
