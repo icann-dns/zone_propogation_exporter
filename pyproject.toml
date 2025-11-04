@@ -19,12 +19,16 @@ propogation-exporter = "propogation_exporter.cli:main"
 python_version = "3.8"
 strict = false
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 174fe1d (switch to using uv for testing)
 
 [project.optional-dependencies]
 # Development/testing dependencies to be installed via uv extras:
 #   uv sync --extra dev
 dev = [
+<<<<<<< HEAD
     "pytest",
     "pytest-cov",
     "flake8",
@@ -32,3 +36,10 @@ dev = [
     "types-PyYAML",
 ]
 >>>>>>> 716461a (fix issues with types)
+=======
+    "pytest>=8",
+    "pytest-cov>=4",
+    "flake8>=6",
+    "mypy>=1.7",
+]
+>>>>>>> 174fe1d (switch to using uv for testing)

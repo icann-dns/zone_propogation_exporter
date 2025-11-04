@@ -23,6 +23,24 @@ Run
 
 	python main.py -c /etc/coralogix-exporter/zones.yaml
 
+Testing with uv
+----------------
+
+This project uses [uv](https://github.com/astral-sh/uv) for Python environment and dependency management in development.
+
+- Install dev deps (once):
+
+	uv sync --extra dev
+
+- Run tests with coverage:
+
+	uv run pytest -q --cov=propogation_exporter --cov-report=term-missing
+
+- Optional: type and style checks:
+
+	uv run mypy propogation_exporter
+	uv run flake8 propogation_exporter
+
 CLI options
 -----------
 

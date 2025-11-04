@@ -31,12 +31,15 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
+<<<<<<< HEAD
             - name: Install systemd development libraries (Linux only)
               run: |
                   sudo apt-get update
                   # libsystemd-dev supersedes the old libsystemd-journal(-dev) packages
                   sudo apt-get install -y libsystemd-dev pkg-config build-essential
 
+=======
+>>>>>>> 174fe1d (switch to using uv for testing)
             - name: Sync dev dependencies with uv
               run: |
                   uv sync --extra dev
@@ -47,8 +50,12 @@ jobs:
 
             - name: Type check (mypy)
               run: |
+<<<<<<< HEAD
                   # Stubs are pre-declared in dev extras; avoid mypy --install-types which needs pip
                   uv run mypy propogation_exporter
+=======
+                  uv run mypy --install-types --non-interactive propogation_exporter
+>>>>>>> 174fe1d (switch to using uv for testing)
 
             - name: Run tests (pytest + coverage)
               run: |
