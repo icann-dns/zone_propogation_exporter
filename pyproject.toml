@@ -5,11 +5,18 @@ description = "Systemd journal reader and exporter"
 readme = "README.md"
 requires-python = ">=3.6"
 dependencies = [
-    "systemd-python>=234",
+    # systemd bindings are only available on Linux where libsystemd is present
+    "systemd-python>=234; sys_platform == 'linux'",
     "dnspython==1.15.0",
     "PyYAML>=5.4.1,<6.0",
-    "prometheus-client>=0.9.0,<1.0",
+    "prometheus-client>=0.1.0,<1.0",
 ]
 
 [project.scripts]
 propogation-exporter = "propogation_exporter.cli:main"
+
+[tool.mypy]
+# Treat third-party modules without type hints (like systemd) as okay
+ignore_missing_imports = true
+python_version = "3.8"
+strict = false

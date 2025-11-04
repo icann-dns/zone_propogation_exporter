@@ -1,6 +1,12 @@
 import logging
 import select
-from systemd.journal import Reader, LOG_INFO, APPEND
+try:
+    from systemd.journal import Reader, LOG_INFO, APPEND
+except ImportError as e:
+    # Provide a clear error early on non-Linux systems or when libsystemd is missing
+    raise RuntimeError(
+        "systemd-python is not available. This application requires Linux with libsystemd installed."
+    ) from e
 
 from .zone import ZoneManager
 
