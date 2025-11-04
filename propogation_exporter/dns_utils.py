@@ -59,7 +59,12 @@ class DNSChecker(object):
         try:
             # dnspython 1.x API uses query(); resolve() is 2.x+
             answer = resolver.query(zone, "SOA", tcp=tcp)
-        except (dns.exception.Timeout, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers) as e:
+        except (
+            dns.exception.Timeout,
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.resolver.NoNameservers
+        ) as e:
             logger.warning("DNS query failed for %s at %s: %s", zone, nameserver, e)
             return None
         except dns.exception.DNSException as e:
@@ -74,5 +79,7 @@ class DNSChecker(object):
             # Typically a single SOA record; take the first
             return int(answer[0].serial)
         except Exception as e:
-            logger.error("Failed to parse SOA serial for %s from %s: %s", zone, nameserver, e)
+            logger.error(
+                "Failed to parse SOA serial for %s from %s: %s", zone, nameserver, e
+            )
             return None

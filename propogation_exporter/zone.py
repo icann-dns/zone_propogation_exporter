@@ -23,13 +23,22 @@ DEFAULT_ZONE_STATS_REGEX = re.compile(
 class ZoneInfo(object):
     """Information about a DNS zone and its nameserver."""
 
-    def __init__(self, name, serial, update_time, name_server=""):
-        self.name = name
-        self.serial = serial
-        self.update_time = update_time
-        self.name_server = name_server
+    def __init__(
+        self,
+        name: str,
+        serial: int,
+        update_time: datetime,
+        name_server: str = "",
+    ) -> None:
+        self.name: str = name
+        self.serial: int = serial
+        self.update_time: datetime = update_time
+        self.name_server: str = name_server
         # Resolve DNS name for metrics labels if possible
-        self.dns_name = DNSChecker.get_dns_name(self.name_server) if self.name_server else self.name_server
+        self.dns_name: str = (
+            DNSChecker.get_dns_name(self.name_server)
+            if self.name_server else self.name_server
+        )
 
 
 class ZoneConfig(object):
@@ -66,14 +75,22 @@ class ZoneConfig(object):
                 if ns.serial == primary_serial:
                     continue
 
-                logger.debug("Checking propagation for zone %s on nameserver %s", zone, ns.name_server)
+                logger.debug(
+                    "Checking propagation for zone %s on nameserver %s",
+                    zone, ns.name_server
+                )
                 downstream_serial = DNSChecker.resolve_soa_serial(zone, ns.name_server)
 
                 if downstream_serial is None:
-                    logger.warning("No serial obtained from %s for %s", ns.name_server, zone)
+                    logger.warning(
+                        "No serial obtained from %s for %s", ns.name_server, zone
+                    )
                     continue
 
-                logger.info("Zone %s: %s serial=%s (primary=%s)", zone, ns.name_server, downstream_serial, primary_serial)
+                logger.info(
+                    "Zone %s: %s serial=%s (primary=%s)",
+                    zone, ns.name_server, downstream_serial, primary_serial
+                )
                 if downstream_serial != primary_serial:
                     logger.warning(
                         "Downstream %s does not match %s: downstream=%s != primary=%s",
@@ -112,7 +129,10 @@ class ZoneConfig(object):
                     nameserver=ns.dns_name,
                     serial=str(primary_serial)
                 ).set(propagation_delay)
-                logger.info("Zone %s: %s propagation delay: %.2f seconds", zone, ns.dns_name, propagation_delay)
+                logger.info(
+                    "Zone %s: %s propagation delay: %.2f seconds",
+                    zone, ns.dns_name, propagation_delay
+                )
 
             # Check if all nameservers have synced by comparing serials
             self.synced = all(ns.serial == primary_serial for ns in self.downstream_nameservers)
@@ -129,7 +149,12 @@ class ZoneConfig(object):
 class ZoneManager(object):
     """Manages zone configurations and propagation worker threads."""
 
-    def __init__(self, zones: Dict[str, ZoneConfig], *, zone_stats_regex: Optional[Union[str, Pattern[str]]] = None) -> None:
+    def __init__(
+        self,
+        zones: Dict[str, ZoneConfig],
+        *,
+        zone_stats_regex: Optional[Union[str, Pattern[str]]] = None
+    ) -> None:
         self.zones = zones
         self.workers: Dict[str, threading.Thread] = {}
         self._metrics_thread: Optional[threading.Thread] = None
@@ -142,7 +167,11 @@ class ZoneManager(object):
             self.zone_stats_regex = zone_stats_regex
 
     @staticmethod
-    def load_from_file(config_file: Path, *, zone_stats_regex: Optional[Union[str, Pattern[str]]] = None) -> 'ZoneManager':
+    def load_from_file(
+        config_file: Path,
+        *,
+        zone_stats_regex: Optional[Union[str, Pattern[str]]] = None
+    ) -> 'ZoneManager':
         """Load zone configuration from a YAML file and return a ZoneManager."""
         zones_config = yaml.safe_load(config_file.read_text())
         zones: Dict[str, ZoneConfig] = {}
@@ -211,7 +240,8 @@ class ZoneManager(object):
 
         # Update Prometheus metrics
         metrics.zone_rr_count.labels(zone=zone).set(zone_config.rr_count)
-        metrics.zone_in_sync.labels(zone=zone).set(0)  # Mark as not synced initially when zone is updated
+        # Mark as not synced initially when zone is updated
+        metrics.zone_in_sync.labels(zone=zone).set(0)
 
         return zone_config
 
@@ -222,7 +252,10 @@ class ZoneManager(object):
             if zone_config.has_rr_count:
                 metrics.zone_rr_count.labels(zone=zone_name).set(zone_config.rr_count)
                 metrics.zone_in_sync.labels(zone=zone_name).set(1 if zone_config.synced else 0)
-                logger.debug("Updated metric for zone %s: rr_count=%d, synced=%s", zone_name, zone_config.rr_count, zone_config.synced)
+                logger.debug(
+                    "Updated metric for zone %s: rr_count=%d, synced=%s",
+                    zone_name, zone_config.rr_count, zone_config.synced
+                )
             else:
                 logger.debug("Skipping metrics for zone %s: no RR count parsed yet", zone_name)
 

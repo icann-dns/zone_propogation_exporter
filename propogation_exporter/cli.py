@@ -34,21 +34,35 @@ def get_args() -> Namespace:  # pragma: no cover
     Returns:
         Namespace: The parsed argument namespace
     """
-    parser = ArgumentParser(description="Propagation exporter: journal reader and metrics emitter")
+    parser = ArgumentParser(
+        description="Propagation exporter: journal reader and metrics emitter"
+    )
     parser.add_argument('-v', '--verbose', action='count', default=0)
-    parser.add_argument('-c', '--config-file', type=Path, default=Path('/etc/coralogix-exporter/zones.yaml'),
-                        help='Path to the zone configuration file')
-    parser.add_argument('--stats-regex', type=str, default=None,
-                        help='Regex pattern to parse journal stats lines; must include named groups zone, serial, rr_count')
+    parser.add_argument(
+        '-c', '--config-file', type=Path,
+        default=Path('/etc/coralogix-exporter/zones.yaml'),
+        help='Path to the zone configuration file'
+    )
+    parser.add_argument(
+        '--stats-regex', type=str, default=None,
+        help=(
+                'Regex pattern to parse journal stats lines; must include named groups'
+                'zone, serial, rr_count'
+            )
+    )
     # Ad-hoc SOA check mode (no systemd required)
     parser.add_argument('--zone', help='DNS zone to check (e.g., example.com.)')
     parser.add_argument('--ns', dest='nameservers', action='append', default=[],
                         help='Downstream nameserver (IP or host). Repeat for multiple.')
     parser.add_argument('--port', type=int, default=53, help='DNS port (default: 53)')
-    parser.add_argument('--timeout', type=float, default=3.0, help='DNS timeout seconds (default: 3.0)')
-    parser.add_argument('--tcp', action='store_true', help='Use TCP for DNS queries (default: UDP)')
-    parser.add_argument('--metrics-port', type=int, default=8000,
-                        help='Prometheus metrics HTTP server port (default: 8000)')
+    parser.add_argument(
+        '--timeout', type=float, default=3.0, help='DNS timeout seconds (default: 3.0)'
+    )
+    parser.add_argument(
+        '--tcp', action='store_true', help='Use TCP for DNS queries (default: UDP)')
+    parser.add_argument(
+        '--metrics-port', type=int, default=8000,
+        help='Prometheus metrics HTTP server port (default: 8000)')
     return parser.parse_args()
 
 
@@ -72,9 +86,15 @@ def main() -> None:
         # Ensure zone ends with a dot for absolute queries
         if not zone.endswith('.'):
             zone = zone + '.'
-        logging.info("Checking SOA serial for %s on %d nameserver(s)...", zone, len(args.nameservers))
+        logging.info(
+            "Checking SOA serial for %s on %d nameserver(s)...",
+            zone,
+            len(args.nameservers)
+        )
         for ns in args.nameservers:
-            serial = DNSChecker.resolve_soa_serial(zone, ns, port=args.port, timeout=args.timeout, tcp=args.tcp)
+            serial = DNSChecker.resolve_soa_serial(
+                zone, ns, port=args.port, timeout=args.timeout, tcp=args.tcp
+            )
             if serial is None:
                 print(f"{ns}\tNO_ANSWER")
             else:
@@ -85,7 +105,9 @@ def main() -> None:
     start_http_server(args.metrics_port)
 
     logging.info("Starting systemd journal reader in background thread...")
-    zone_manager = ZoneManager.load_from_file(args.config_file, zone_stats_regex=args.stats_regex)
+    zone_manager = ZoneManager.load_from_file(
+        args.config_file, zone_stats_regex=args.stats_regex
+    )
     journal_reader = JournalReader(zone_manager)
 
     # Start metrics updater thread
