@@ -16,7 +16,19 @@ dependencies = [
 propogation-exporter = "propogation_exporter.cli:main"
 
 [tool.mypy]
-# Treat third-party modules without type hints (like systemd) as okay
-ignore_missing_imports = true
 python_version = "3.8"
 strict = false
+<<<<<<< HEAD
+=======
+
+[project.optional-dependencies]
+# Development/testing dependencies to be installed via uv extras:
+#   uv sync --extra dev
+dev = [
+    "pytest",
+    "pytest-cov",
+    "flake8",
+    "mypy",
+    "types-PyYAML",
+]
+>>>>>>> 716461a (fix issues with types)

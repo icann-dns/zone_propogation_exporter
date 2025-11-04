@@ -2,8 +2,8 @@ import logging
 import socket
 from typing import Optional
 
-import dns.resolver
-import dns.exception
+import dns.resolver  # type: ignore[import-untyped]
+import dns.exception  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

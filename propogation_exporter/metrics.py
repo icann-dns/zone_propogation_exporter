@@ -1,5 +1,6 @@
 import logging
-from prometheus_client import Gauge
+
+from prometheus_client import Gauge  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,8 @@
 import logging
 import select
 try:
-    from systemd.journal import Reader, LOG_INFO, APPEND
+    # systemd-python doesn't ship typing; silence mypy's import-untyped here
+    from systemd.journal import Reader, LOG_INFO, APPEND  # type: ignore[import-untyped]
 except ImportError as e:
     # Provide a clear error early on non-Linux systems or when libsystemd is missing
     raise RuntimeError(

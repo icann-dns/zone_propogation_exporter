@@ -4,11 +4,11 @@ import threading
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from prometheus_client import start_http_server
+from prometheus_client import start_http_server  # type: ignore[import-untyped]
 
 from .dns_utils import DNSChecker
-from .zone import ZoneManager
 from .journal import JournalReader
+from .zone import ZoneManager
 
 
 def get_log_level(args_level: int) -> int:  # pragma: no cover
