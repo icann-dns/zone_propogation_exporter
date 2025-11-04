@@ -3,7 +3,6 @@ import logging
 import threading
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import Optional
 
 from prometheus_client import start_http_server
 

@@ -1,0 +1,41 @@
+name: Build and Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.1.0, v1.2.3, etc.
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+      
+      - name: Build package
+        run: |
+          uv build
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Uncomment below to publish to PyPI
+      # - name: Publish to PyPI
+      #   env:
+      #     UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      #   run: |
+      #     uv publish
