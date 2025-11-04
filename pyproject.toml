@@ -3,7 +3,7 @@ name = "propogation-exporter"
 version = "0.1.0"
 description = "Systemd journal reader and exporter"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 dependencies = [
     # systemd bindings are only available on Linux where libsystemd is present
     "systemd-python>=234; sys_platform == 'linux'",
