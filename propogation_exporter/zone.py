@@ -1,7 +1,6 @@
 import logging
 import re
 import threading
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Pattern, Union
@@ -16,21 +15,21 @@ logger = logging.getLogger(__name__)
 # Default regex used to parse journal "[STATS]" lines for zone updates.
 # Example line:
 # [STATS] example.com 2024072826 RR[count=4 time=0(sec)] ...
-DEFAULT_ZONE_STATS_REGEX: Pattern[str] = re.compile(
+DEFAULT_ZONE_STATS_REGEX = re.compile(
     r"^\[STATS\]\s+(?P<zone>\S+)\s+(?P<serial>\d+)\s+RR\[count=(?P<rr_count>\d+)"
 )
 
 
-@dataclass
-class ZoneInfo:
-    name: str
-    serial: int
-    update_time: datetime
-    name_server: str = ""
+class ZoneInfo(object):
+    """Information about a DNS zone and its nameserver."""
 
-    def __post_init__(self) -> None:
+    def __init__(self, name, serial, update_time, name_server=""):
+        self.name = name
+        self.serial = serial
+        self.update_time = update_time
+        self.name_server = name_server
         # Resolve DNS name for metrics labels if possible
-        self.dns_name: str = DNSChecker.get_dns_name(self.name_server) if self.name_server else self.name_server
+        self.dns_name = DNSChecker.get_dns_name(self.name_server) if self.name_server else self.name_server
 
 
 class ZoneConfig(object):
