@@ -5,6 +5,10 @@ on:
     tags:
       - "v*" # Trigger on version tags like v0.1.0, v1.2.3, etc.
 
+permissions:
+  contents: write # For creating releases
+  id-token: write # For PyPI trusted publishing
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -79,11 +83,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Uncomment below to publish to PyPI
-      # - name: Publish to PyPI
-      #   env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     pip install twine
-      #     twine upload dist/*.whl dist/*.tar.gz
+      - name: Publish to PyPI using Trusted Publisher
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # No password/token needed - uses OIDC trusted publishing
+          skip-existing: true
+          verbose: true
