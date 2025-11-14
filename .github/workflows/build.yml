@@ -7,30 +7,69 @@ on:
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # Use focal (20.04) for building
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.6
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.6"
+
+      - name: Install system dependencies for debian package
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            debhelper \
+            dh-python \
+            python3-all \
+            python3-setuptools \
+            python3-stdeb \
+            libsystemd-dev \
+            pkg-config \
+            build-essential
 
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install build
+          pip install build stdeb
 
       - name: Build source distribution (sdist)
         run: |
           python -m build --sdist
 
-      - name: Build universal wheel with py3 tag
+      - name: Build universal wheel with py3 tag (Python 3.6+ compatible)
         run: |
           # Build a universal wheel that's compatible with Python 3.6+
           python setup.py bdist_wheel --python-tag py3
+
+      - name: Build Debian package for focal
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+
+          # Build Debian package using stdeb
+          python setup.py --command-packages=stdeb.command bdist_deb
+
+          # Rename to include focal in the filename
+          cd deb_dist
+          for deb in *.deb; do
+            if [[ -f "$deb" ]]; then
+              # Insert 'focal' before .deb extension
+              mv "$deb" "${deb%.deb}_focal.deb"
+            fi
+          done
+          cd ..
+
+          # Move debian packages to dist folder
+          mkdir -p dist
+          mv deb_dist/*.deb dist/ || true
+
+      - name: List built artifacts
+        run: |
+          ls -lh dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -47,4 +86,4 @@ jobs:
       #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       #   run: |
       #     pip install twine
-      #     twine upload dist/*
+      #     twine upload dist/*.whl dist/*.tar.gz
