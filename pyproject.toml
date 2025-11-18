@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "propogation-exporter"
+name = "propagation-exporter"
 version = "0.1.0"
 description = "Systemd journal reader and exporter"
 readme = "README.md"
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-propogation-exporter = "propogation_exporter.cli:main"
+propagation-exporter = "propagation_exporter.cli:main"
 
 [tool.mypy]
 python_version = "3.8"
@@ -24,7 +24,7 @@ strict = false
 
 [tool.coverage.run]
 omit = [
-    "propogation_exporter/__main__.py",
+    "propagation_exporter/__main__.py",
 ]
 
 [tool.coverage.report]

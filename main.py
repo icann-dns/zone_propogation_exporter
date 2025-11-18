@@ -2,10 +2,10 @@
 """Compatibility runner.
 
 This script simply delegates to the package CLI entry point.
-Prefer invoking via `python -m propogation_exporter` or the console script.
+Prefer invoking via `python -m propagation_exporter` or the console script.
 """
 
-from propogation_exporter.cli import main
+from propagation_exporter.cli import main
 
 
 if __name__ == "__main__":

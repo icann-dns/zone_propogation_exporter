@@ -13,11 +13,11 @@ Run
 
 - As a console script (recommended):
 
-	propogation-exporter -c /etc/coralogix-exporter/zones.yaml --metrics-port 8000
+	propagation-exporter -c /etc/coralogix-exporter/zones.yaml --metrics-port 8000
 
 - As a module:
 
-	python -m propogation_exporter -c /etc/coralogix-exporter/zones.yaml
+	python -m propagation_exporter -c /etc/coralogix-exporter/zones.yaml
 
 - Legacy script (still supported):
 
@@ -34,12 +34,12 @@ This project uses [uv](https://github.com/astral-sh/uv) for Python environment a
 
 - Run tests with coverage:
 
-	uv run pytest -q --cov=propogation_exporter --cov-report=term-missing
+	uv run pytest -q --cov=propagation_exporter --cov-report=term-missing
 
 - Optional: type and style checks:
 
-	uv run mypy propogation_exporter
-	uv run flake8 propogation_exporter
+	uv run mypy propagation_exporter
+	uv run flake8 propagation_exporter
 
 CLI options
 -----------
@@ -65,7 +65,7 @@ You can override it via CLI `--stats-regex` or programmatically when creating `Z
 Module layout
 -------------
 
-- propogation_exporter/
+- propagation_exporter/
 	- __init__.py: public exports
 	- __main__.py: `python -m` entry
 	- cli.py: argument parsing and app wiring

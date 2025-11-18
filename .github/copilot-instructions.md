@@ -5,18 +5,18 @@ This is a Python tool that monitors systemd journal entries from `opendnssec-sig
 
 ## Key Components
 - `main.py`: Legacy entry point (still supported)
-- `propogation_exporter/cli.py`: CLI argument parsing and application wiring
-- `propogation_exporter/journal.py`: Reads systemd journal for zone update events
-- `propogation_exporter/zone.py`: Core logic for zone info/config/management and parsing journal lines
-- `propogation_exporter/dns_utils.py`: DNS SOA serial checking utilities
-- `propogation_exporter/metrics.py`: Prometheus metrics definitions and export
-- `propogation_exporter/__main__.py`: Entry for `python -m propogation_exporter`
+- `propagation_exporter/cli.py`: CLI argument parsing and application wiring
+- `propagation_exporter/journal.py`: Reads systemd journal for zone update events
+- `propagation_exporter/zone.py`: Core logic for zone info/config/management and parsing journal lines
+- `propagation_exporter/dns_utils.py`: DNS SOA serial checking utilities
+- `propagation_exporter/metrics.py`: Prometheus metrics definitions and export
+- `propagation_exporter/__main__.py`: Entry for `python -m propagation_exporter`
 
 ## Developer Workflows
 - **Run as CLI:**
-  - `propogation-exporter -c /etc/coralogix-exporter/zones.yaml --metrics-port 8000`
+  - `propagation-exporter -c /etc/coralogix-exporter/zones.yaml --metrics-port 8000`
 - **Run as module:**
-  - `python -m propogation_exporter -c /etc/coralogix-exporter/zones.yaml`
+  - `python -m propagation_exporter -c /etc/coralogix-exporter/zones.yaml`
 - **Legacy script:**
   - `python main.py -c /etc/coralogix-exporter/zones.yaml`
 - **Config file:** YAML with zones and nameservers (see README for example)
@@ -48,7 +48,7 @@ This is a Python tool that monitors systemd journal entries from `opendnssec-sig
 
 ## References
 - See `README.md` for config and usage examples
-- See `propogation_exporter/` for main logic
+- See `propagation_exporter/` for main logic
 
 ---
 For unclear or missing conventions, ask maintainers for clarification.

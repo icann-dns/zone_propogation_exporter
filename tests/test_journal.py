@@ -10,13 +10,13 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@patch("propogation_exporter.journal.Reader")
+@patch("propagation_exporter.journal.Reader")
 def test_journal_reader_processes_stats_entries(MockReader: MagicMock):
     """Test that JournalReader processes [STATS] entries correctly."""
     from datetime import datetime
 
-    from propogation_exporter.journal import JournalReader
-    from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+    from propagation_exporter.journal import JournalReader
+    from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     # Set up a minimal zone manager
     zone_name = "example.com."
@@ -39,7 +39,7 @@ def test_journal_reader_processes_stats_entries(MockReader: MagicMock):
     reader = JournalReader(zone_manager)
 
     # Mock the poller to return once then stop
-    with patch("propogation_exporter.journal.select.poll") as mock_poll_class:
+    with patch("propagation_exporter.journal.select.poll") as mock_poll_class:
         mock_poller = MagicMock()
         mock_poll_class.return_value = mock_poller
         # Return True once, then False to exit loop
@@ -51,13 +51,13 @@ def test_journal_reader_processes_stats_entries(MockReader: MagicMock):
             mock_start.assert_called_once()
 
 
-@patch("propogation_exporter.journal.Reader")
+@patch("propagation_exporter.journal.Reader")
 def test_journal_reader_skips_non_stats_entries(MockReader: MagicMock):
     """Test that non-[STATS] entries are skipped."""
     from datetime import datetime
 
-    from propogation_exporter.journal import JournalReader
-    from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+    from propagation_exporter.journal import JournalReader
+    from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
     zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
@@ -77,7 +77,7 @@ def test_journal_reader_skips_non_stats_entries(MockReader: MagicMock):
 
     reader = JournalReader(zone_manager)
 
-    with patch("propogation_exporter.journal.select.poll") as mock_poll_class:
+    with patch("propagation_exporter.journal.select.poll") as mock_poll_class:
         mock_poller = MagicMock()
         mock_poll_class.return_value = mock_poller
         mock_poller.poll.side_effect = [True, False]
@@ -88,13 +88,13 @@ def test_journal_reader_skips_non_stats_entries(MockReader: MagicMock):
             mock_start.assert_not_called()
 
 
-@patch("propogation_exporter.journal.Reader")
+@patch("propagation_exporter.journal.Reader")
 def test_journal_reader_handles_parse_errors(MockReader: MagicMock):
     """Test that parse errors are logged and don't crash the reader."""
     from datetime import datetime
 
-    from propogation_exporter.journal import JournalReader
-    from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+    from propagation_exporter.journal import JournalReader
+    from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
     zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
@@ -114,7 +114,7 @@ def test_journal_reader_handles_parse_errors(MockReader: MagicMock):
 
     reader = JournalReader(zone_manager)
 
-    with patch("propogation_exporter.journal.select.poll") as mock_poll_class:
+    with patch("propagation_exporter.journal.select.poll") as mock_poll_class:
         mock_poller = MagicMock()
         mock_poll_class.return_value = mock_poller
         mock_poller.poll.side_effect = [True, False]
@@ -123,13 +123,13 @@ def test_journal_reader_handles_parse_errors(MockReader: MagicMock):
         reader.run()
 
 
-@patch("propogation_exporter.journal.Reader")
+@patch("propagation_exporter.journal.Reader")
 def test_journal_reader_custom_pattern(MockReader: MagicMock):
     """Test JournalReader with custom pattern."""
     from datetime import datetime
 
-    from propogation_exporter.journal import JournalReader
-    from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+    from propagation_exporter.journal import JournalReader
+    from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
     zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
@@ -141,14 +141,14 @@ def test_journal_reader_custom_pattern(MockReader: MagicMock):
     assert reader.pattern == "[CUSTOM]"
 
 
-@patch("propogation_exporter.journal.Reader")
-@patch("propogation_exporter.journal.APPEND", 1)
+@patch("propagation_exporter.journal.Reader")
+@patch("propagation_exporter.journal.APPEND", 1)
 def test_journal_reader_skips_non_append_events(MockReader: MagicMock):
     """Test that journal.process() != APPEND continues (line 34 coverage)."""
     from datetime import datetime
 
-    from propogation_exporter.journal import JournalReader
-    from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+    from propagation_exporter.journal import JournalReader
+    from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
     zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
@@ -180,7 +180,7 @@ def test_journal_reader_skips_non_append_events(MockReader: MagicMock):
 
     reader = JournalReader(zone_manager)
 
-    with patch("propogation_exporter.journal.select.poll") as mock_poll_class:
+    with patch("propagation_exporter.journal.select.poll") as mock_poll_class:
         mock_poller = MagicMock()
         mock_poll_class.return_value = mock_poller
         # Poll returns True twice, then False

@@ -23,4 +23,4 @@ COPY . .
 RUN uv sync --extra dev
 
 # Default command runs tests
-CMD ["uv", "run", "pytest", "-v", "--cov=propogation_exporter", "--cov-report=term-missing"]
+CMD ["uv", "run", "pytest", "-v", "--cov=propagation_exporter", "--cov-report=term-missing"]

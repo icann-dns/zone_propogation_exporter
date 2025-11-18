@@ -4,7 +4,7 @@ from pathlib import Path
 from textwrap import dedent
 from unittest.mock import MagicMock, patch
 
-from propogation_exporter.cli import configure_logging, get_args, get_log_level, main
+from propagation_exporter.cli import configure_logging, get_args, get_log_level, main
 
 
 def test_get_log_level_mapping():
@@ -27,14 +27,14 @@ def test_configure_logging():
     # Verify root logger has the right level
     assert root_logger.isEnabledFor(logging.INFO)
     # Verify a module logger would inherit the level
-    logger = logging.getLogger('propogation_exporter.cli')
+    logger = logging.getLogger('propagation_exporter.cli')
     # The module logger might not have a level set (inherits from root)
     assert logger.getEffectiveLevel() <= logging.INFO or root_logger.isEnabledFor(logging.INFO)
 
 
 def test_get_args_defaults():
     """Test default argument values."""
-    with patch.object(sys, 'argv', ['propogation-exporter']):
+    with patch.object(sys, 'argv', ['propagation-exporter']):
         args = get_args()
         assert args.verbose == 0
         assert args.config_file == Path('/etc/coralogix-exporter/zones.yaml')
@@ -50,7 +50,7 @@ def test_get_args_defaults():
 def test_get_args_with_options():
     """Test argument parsing with various options."""
     with patch.object(sys, 'argv', [
-        'propogation-exporter',
+        'propagation-exporter',
         '-vvv',
         '-c', '/tmp/zones.yaml',
         '--stats-regex', 'custom.*pattern',
@@ -74,13 +74,13 @@ def test_get_args_with_options():
         assert args.metrics_port == 9090
 
 
-@patch('propogation_exporter.cli.DNSChecker.resolve_soa_serial')
+@patch('propagation_exporter.cli.DNSChecker.resolve_soa_serial')
 def test_main_soa_check_mode(mock_resolve: MagicMock, capsys: MagicMock):
     """Test main() in SOA check mode."""
     mock_resolve.side_effect = [2025010101, None]  # First NS returns serial, second None
 
     with patch.object(sys, 'argv', [
-        'propogation-exporter',
+        'propagation-exporter',
         '--zone', 'example.com',
         '--ns', '8.8.8.8',
         '--ns', '1.1.1.1',
@@ -93,13 +93,13 @@ def test_main_soa_check_mode(mock_resolve: MagicMock, capsys: MagicMock):
     assert mock_resolve.call_count == 2
 
 
-@patch('propogation_exporter.cli.DNSChecker.resolve_soa_serial')
+@patch('propagation_exporter.cli.DNSChecker.resolve_soa_serial')
 def test_main_soa_check_mode_adds_trailing_dot(mock_resolve: MagicMock):
     """Test that main() adds trailing dot to zone if missing."""
     mock_resolve.return_value = 123
 
     with patch.object(sys, 'argv', [
-        'propogation-exporter',
+        'propagation-exporter',
         '--zone', 'example.com',  # No trailing dot
         '--ns', '8.8.8.8',
     ]):
@@ -110,10 +110,10 @@ def test_main_soa_check_mode_adds_trailing_dot(mock_resolve: MagicMock):
     assert mock_resolve.call_args[0][0] == 'example.com.'
 
 
-@patch('propogation_exporter.cli.threading.Thread')
-@patch('propogation_exporter.cli.JournalReader')
-@patch('propogation_exporter.cli.ZoneManager.load_from_file')
-@patch('propogation_exporter.cli.start_http_server')
+@patch('propagation_exporter.cli.threading.Thread')
+@patch('propagation_exporter.cli.JournalReader')
+@patch('propagation_exporter.cli.ZoneManager.load_from_file')
+@patch('propagation_exporter.cli.start_http_server')
 def test_main_journal_mode(mock_http: MagicMock, mock_load: MagicMock,
                            mock_journal: MagicMock, mock_thread: MagicMock, tmp_path: Path):
     """Test main() in journal reader mode."""
@@ -137,7 +137,7 @@ def test_main_journal_mode(mock_http: MagicMock, mock_load: MagicMock,
     mock_thread_instance.join.side_effect = KeyboardInterrupt()  # Exit immediately
 
     with patch.object(sys, 'argv', [
-        'propogation-exporter',
+        'propagation-exporter',
         '-c', str(config_file),
         '--metrics-port', '8001',
     ]):
@@ -159,10 +159,10 @@ def test_main_journal_mode(mock_http: MagicMock, mock_load: MagicMock,
     mock_thread_instance.start.assert_called_once()
 
 
-@patch('propogation_exporter.cli.threading.Thread')
-@patch('propogation_exporter.cli.JournalReader')
-@patch('propogation_exporter.cli.ZoneManager.load_from_file')
-@patch('propogation_exporter.cli.start_http_server')
+@patch('propagation_exporter.cli.threading.Thread')
+@patch('propagation_exporter.cli.JournalReader')
+@patch('propagation_exporter.cli.ZoneManager.load_from_file')
+@patch('propagation_exporter.cli.start_http_server')
 def test_main_with_custom_stats_regex(mock_http: MagicMock, mock_load: MagicMock,
                                       mock_journal: MagicMock, mock_thread: MagicMock, tmp_path: Path):
     """Test main() passes custom stats regex to ZoneManager."""
@@ -176,7 +176,7 @@ def test_main_with_custom_stats_regex(mock_http: MagicMock, mock_load: MagicMock
     mock_thread_instance.join.side_effect = KeyboardInterrupt()
 
     with patch.object(sys, 'argv', [
-        'propogation-exporter',
+        'propagation-exporter',
         '-c', str(config_file),
         '--stats-regex', 'custom.*(?P<zone>\\S+).*(?P<serial>\\d+).*(?P<rr_count>\\d+)',
     ]):

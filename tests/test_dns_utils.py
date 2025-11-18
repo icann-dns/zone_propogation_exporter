@@ -1,7 +1,7 @@
 import socket
 from unittest.mock import MagicMock, patch
 
-from propogation_exporter.dns_utils import DNSChecker
+from propagation_exporter.dns_utils import DNSChecker
 
 
 class TestGetDnsName:
@@ -19,7 +19,7 @@ class TestGetDnsName:
 
 
 class TestResolveSoaSerial:
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_success_parses_serial(self, MockResolver: MagicMock):
         resolver = MockResolver.return_value
         # Mock answer object
@@ -37,7 +37,7 @@ class TestResolveSoaSerial:
         assert resolver.nameservers == ["192.0.2.10"]
         assert resolver.port == 53
 
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_no_rrset_or_empty_returns_none(self, MockResolver: MagicMock):
         resolver = MockResolver.return_value
         answer = MagicMock()
@@ -46,7 +46,7 @@ class TestResolveSoaSerial:
         resolver.query.return_value = answer
         assert DNSChecker.resolve_soa_serial("example.com.", "192.0.2.10") is None
 
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_serial_parse_error_returns_none(self, MockResolver: MagicMock):
         resolver = MockResolver.return_value
         answer = MagicMock()
@@ -58,9 +58,9 @@ class TestResolveSoaSerial:
         resolver.query.return_value = answer
     assert DNSChecker.resolve_soa_serial("example.com.", "192.0.2.10") is None
 
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_known_dns_errors_return_none(self, MockResolver: MagicMock):
-        import propogation_exporter.dns_utils as du
+        import propagation_exporter.dns_utils as du
         resolver = MockResolver.return_value
 
         resolver.query.side_effect = du.dns.exception.Timeout()
@@ -75,14 +75,14 @@ class TestResolveSoaSerial:
         resolver.query.side_effect = du.dns.resolver.NoNameservers()
         assert DNSChecker.resolve_soa_serial("example.com.", "192.0.2.10") is None
 
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_unexpected_dns_exception_returns_none(self, MockResolver: MagicMock):
-        import propogation_exporter.dns_utils as du
+        import propagation_exporter.dns_utils as du
         resolver = MockResolver.return_value
         resolver.query.side_effect = du.dns.exception.DNSException("boom")
         assert DNSChecker.resolve_soa_serial("example.com.", "192.0.2.10") is None
 
-    @patch("propogation_exporter.dns_utils.dns.resolver.Resolver")
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
     def test_generic_exception_during_serial_parse_returns_none(self, MockResolver: MagicMock):
         """Test that any exception during serial parsing returns None (covers lines 81-85)."""
         resolver = MockResolver.return_value

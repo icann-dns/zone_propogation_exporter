@@ -4,8 +4,8 @@ from textwrap import dedent
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
-import propogation_exporter.metrics as metrics
-from propogation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
+import propagation_exporter.metrics as metrics
+from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
 
 def make_zone_manager_single(zone_name: str = "example.com.") -> ZoneManager:
@@ -31,7 +31,7 @@ def test_load_from_file_parses_config(tmp_path: Path):
     )
     cfg = tmp_path / "zones.yaml"
     cfg.write_text(yaml_text)
-    with patch("propogation_exporter.zone.DNSChecker.get_dns_name", side_effect=lambda x: x):
+    with patch("propagation_exporter.zone.DNSChecker.get_dns_name", side_effect=lambda x: x):
         zm = ZoneManager.load_from_file(cfg)
     assert "example.com." in zm.zones
     zc = zm.zones["example.com."]
@@ -61,8 +61,8 @@ def test_parse_zone_info_updates_zone_and_metrics():
     assert samples, "Expected at least one sample for zone_in_sync with example.com. labels"
 
 
-@patch("propogation_exporter.zone.metrics.zone_propagation_delay")
-@patch("propogation_exporter.zone.DNSChecker.resolve_soa_serial")
+@patch("propagation_exporter.zone.metrics.zone_propagation_delay")
+@patch("propagation_exporter.zone.DNSChecker.resolve_soa_serial")
 @patch("time.sleep", return_value=None)
 def test_check_downstream_propagation_eventually_syncs(mock_sleep: MagicMock, mock_resolve: MagicMock, mock_delay_gauge: MagicMock):
     zone_name = "example.com."

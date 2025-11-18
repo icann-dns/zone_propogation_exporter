@@ -16,7 +16,7 @@ uv sync --extra dev
 uv run pytest -v
 
 # Run with coverage
-uv run pytest -v --cov=propogation_exporter --cov-report=term-missing
+uv run pytest -v --cov=propagation_exporter --cov-report=term-missing
 ```
 
 **What's tested:**
@@ -31,7 +31,7 @@ Test the ad-hoc SOA check mode (no systemd required):
 
 ```bash
 # Check a real zone's SOA serial across multiple nameservers
-uv run propogation-exporter \
+uv run propagation-exporter \
   --zone google.com. \
   --ns 8.8.8.8 \
   --ns 8.8.4.4
