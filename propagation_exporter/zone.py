@@ -28,17 +28,17 @@ class ZoneInfo(object):
         name: str,
         serial: int,
         update_time: datetime,
-        name_server: str = "",
+        dns_name: str = "",
     ) -> None:
         self.name: str = name
         self.serial: int = serial
         self.update_time: datetime = update_time
-        self.name_server: str = name_server
+        self.dns_name: str = dns_name
         # Resolve DNS name for metrics labels if possible
-        self.dns_name: str = (
-            DNSChecker.get_dns_name(self.name_server)
-            if self.name_server else self.name_server
-        )
+        name_server = DNSChecker.resolve_a_record(self.dns_name)
+        if name_server is None:
+            name_server = self.dns_name
+        self.name_server = name_server
 
 
 class ZoneConfig(object):
@@ -175,6 +175,17 @@ class ZoneManager(object):
         """Load zone configuration from a YAML file and return a ZoneManager."""
         zones_config = yaml.safe_load(config_file.read_text())
         zones: Dict[str, ZoneConfig] = {}
+        default_downstreams: List['ZoneInfo'] = []
+
+        for ns in zones_config.get('default_downstream_nameservers', []):
+            default_downstreams.append(
+                ZoneInfo(
+                    name="",
+                    serial=0,
+                    update_time=datetime.min,
+                    dns_name=ns,
+                )
+            )
         for zone, config in zones_config['zones'].items():
             logger.debug(f"Loaded zone configuration for {zone}: {config}")
             zones[zone] = ZoneConfig(
@@ -184,16 +195,16 @@ class ZoneManager(object):
                     name=zone,
                     serial=0,
                     update_time=datetime.min,
-                    name_server=config['primary_nameserver'],
+                    dns_name=zones_config['primary_nameserver'],
                 ),
                 downstream_nameservers=[
                     ZoneInfo(
                         name=zone,
                         serial=0,
                         update_time=datetime.min,
-                        name_server=ns,
+                        dns_name=ns,
                     ) for ns in config.get('downstream_nameservers', [])
-                ],
+                ] + default_downstreams,
             )
         return ZoneManager(zones, zone_stats_regex=zone_stats_regex)
 

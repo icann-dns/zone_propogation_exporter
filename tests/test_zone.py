@@ -8,12 +8,30 @@ import propagation_exporter.metrics as metrics
 from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
 
+def test_zone_info_resolves_dns_name_to_ip():
+    """Test that ZoneInfo resolves dns_name to name_server using resolve_a_record."""
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value="192.0.2.100") as mock_resolve:
+        zi = ZoneInfo(name="example.com.", serial=1, update_time=datetime.now(), dns_name="ns1.example.com")
+        assert zi.dns_name == "ns1.example.com"
+        assert zi.name_server == "192.0.2.100"
+        mock_resolve.assert_called_once_with("ns1.example.com")
+
+
+def test_zone_info_uses_dns_name_when_resolution_fails():
+    """Test that ZoneInfo falls back to dns_name when A record resolution fails."""
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi = ZoneInfo(name="example.com.", serial=1, update_time=datetime.now(), dns_name="ns1.example.com")
+        assert zi.dns_name == "ns1.example.com"
+        assert zi.name_server == "ns1.example.com"
+
+
 def make_zone_manager_single(zone_name: str = "example.com.") -> ZoneManager:
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
-    downstream = [
-        ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.2"),
-        ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.3"),
-    ]
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
+        downstream = [
+            ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.2"),
+            ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.3"),
+        ]
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=downstream)
     return ZoneManager({zone_name: zc})
 
@@ -21,9 +39,9 @@ def make_zone_manager_single(zone_name: str = "example.com.") -> ZoneManager:
 def test_load_from_file_parses_config(tmp_path: Path):
     yaml_text = dedent(
         f"""
+        primary_nameserver: 192.0.2.10
         zones:
           example.com.:
-            primary_nameserver: 192.0.2.10
             downstream_nameservers:
               - 192.0.2.11
               - 192.0.2.12
@@ -31,13 +49,46 @@ def test_load_from_file_parses_config(tmp_path: Path):
     )
     cfg = tmp_path / "zones.yaml"
     cfg.write_text(yaml_text)
-    with patch("propagation_exporter.zone.DNSChecker.get_dns_name", side_effect=lambda x: x):
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
         zm = ZoneManager.load_from_file(cfg)
     assert "example.com." in zm.zones
     zc = zm.zones["example.com."]
     assert zc.primary_nameserver.name_server == "192.0.2.10"
     assert [ns.name_server for ns in zc.downstream_nameservers] == ["192.0.2.11", "192.0.2.12"]
     assert zc.rr_count == 0
+
+
+def test_load_from_file_with_default_downstreams(tmp_path: Path):
+    yaml_text = dedent(
+        f"""
+        primary_nameserver: 192.0.2.10
+        default_downstream_nameservers:
+          - 192.0.2.20
+          - 192.0.2.21
+        zones:
+          example.com.:
+            downstream_nameservers:
+              - 192.0.2.11
+          example.org.:
+            downstream_nameservers:
+              - 192.0.2.12
+        """
+    )
+    cfg = tmp_path / "zones.yaml"
+    cfg.write_text(yaml_text)
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zm = ZoneManager.load_from_file(cfg)
+
+    # Check example.com has both specific and default downstreams
+    assert "example.com." in zm.zones
+    zc_com = zm.zones["example.com."]
+    assert [ns.name_server for ns in zc_com.downstream_nameservers] == ["192.0.2.11", "192.0.2.20", "192.0.2.21"]
+
+    # Check example.org also has both specific and default downstreams
+    assert "example.org." in zm.zones
+    zc_org = zm.zones["example.org."]
+    assert [ns.name_server for ns in zc_org.downstream_nameservers] == ["192.0.2.12", "192.0.2.20", "192.0.2.21"]
+
 
 
 def test_parse_zone_info_updates_zone_and_metrics():

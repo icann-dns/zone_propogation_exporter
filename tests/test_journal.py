@@ -20,7 +20,8 @@ def test_journal_reader_processes_stats_entries(MockReader: MagicMock):
 
     # Set up a minimal zone manager
     zone_name = "example.com."
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
     zone_manager = ZoneManager({zone_name: zc})
 
@@ -60,7 +61,8 @@ def test_journal_reader_skips_non_stats_entries(MockReader: MagicMock):
     from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
     zone_manager = ZoneManager({zone_name: zc})
 
@@ -97,7 +99,8 @@ def test_journal_reader_handles_parse_errors(MockReader: MagicMock):
     from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
     zone_manager = ZoneManager({zone_name: zc})
 
@@ -132,7 +135,8 @@ def test_journal_reader_custom_pattern(MockReader: MagicMock):
     from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
     zone_manager = ZoneManager({zone_name: zc})
 
@@ -151,7 +155,8 @@ def test_journal_reader_skips_non_append_events(MockReader: MagicMock):
     from propagation_exporter.zone import ZoneConfig, ZoneInfo, ZoneManager
 
     zone_name = "example.com."
-    zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, name_server="192.0.2.1")
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")
     zc = ZoneConfig(name=zone_name, rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
     zone_manager = ZoneManager({zone_name: zc})
 

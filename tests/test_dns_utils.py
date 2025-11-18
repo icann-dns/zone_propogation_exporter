@@ -93,3 +93,74 @@ class TestResolveSoaSerial:
         answer.__getitem__.side_effect = Exception("Unexpected error")
         resolver.query.return_value = answer
         assert DNSChecker.resolve_soa_serial("example.com.", "192.0.2.10") is None
+
+
+class TestResolveARecord:
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_success_returns_ipv4(self, MockResolver: MagicMock):
+        resolver = MockResolver.return_value
+        # Mock answer object
+        answer = MagicMock()
+        answer.__len__.return_value = 1
+        answer.rrset = True
+        answer.__getitem__.return_value = "93.184.216.34"
+        resolver.query.return_value = answer
+
+        ip = DNSChecker.resolve_a_record("www.example.com")
+        assert ip == "93.184.216.34"
+
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_with_nameserver(self, MockResolver: MagicMock):
+        resolver = MockResolver.return_value
+        answer = MagicMock()
+        answer.__len__.return_value = 1
+        answer.rrset = True
+        answer.__getitem__.return_value = "93.184.216.34"
+        resolver.query.return_value = answer
+
+        ip = DNSChecker.resolve_a_record("www.example.com", nameserver="8.8.8.8")
+        assert ip == "93.184.216.34"
+        assert resolver.nameservers == ["8.8.8.8"]
+
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_no_rrset_or_empty_returns_none(self, MockResolver: MagicMock):
+        resolver = MockResolver.return_value
+        answer = MagicMock()
+        answer.__len__.return_value = 0
+        answer.rrset = None
+        resolver.query.return_value = answer
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_known_dns_errors_return_none(self, MockResolver: MagicMock):
+        import propagation_exporter.dns_utils as du
+        resolver = MockResolver.return_value
+
+        resolver.query.side_effect = du.dns.exception.Timeout()
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+        resolver.query.side_effect = du.dns.resolver.NXDOMAIN()
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+        resolver.query.side_effect = du.dns.resolver.NoAnswer()
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+        resolver.query.side_effect = du.dns.resolver.NoNameservers()
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_unexpected_dns_exception_returns_none(self, MockResolver: MagicMock):
+        import propagation_exporter.dns_utils as du
+        resolver = MockResolver.return_value
+        resolver.query.side_effect = du.dns.exception.DNSException("boom")
+        assert DNSChecker.resolve_a_record("www.example.com") is None
+
+    @patch("propagation_exporter.dns_utils.dns.resolver.Resolver")
+    def test_parse_error_returns_none(self, MockResolver: MagicMock):
+        resolver = MockResolver.return_value
+        answer = MagicMock()
+        answer.__len__.return_value = 1
+        answer.rrset = True
+        answer.__getitem__.side_effect = Exception("Unexpected error")
+        resolver.query.return_value = answer
+        assert DNSChecker.resolve_a_record("www.example.com") is None

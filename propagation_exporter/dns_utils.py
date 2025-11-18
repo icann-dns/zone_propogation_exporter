@@ -30,6 +30,62 @@ class DNSChecker(object):
             return ip_address
 
     @staticmethod
+    def resolve_a_record(
+        hostname: str,
+        nameserver: Optional[str] = None,
+        *,
+        port: int = 53,
+        timeout: float = 3.0,
+        tcp: bool = False,
+    ) -> Optional[str]:
+        """Resolve the A record for a hostname and return the IPv4 address.
+
+        Args:
+            hostname: DNS hostname to resolve (e.g., www.example.com)
+            nameserver: Optional nameserver to query; if None, uses system default
+            port: DNS port (default 53)
+            timeout: Overall resolver lifetime in seconds
+            tcp: Force TCP for the query (default False for UDP)
+
+        Returns:
+            The first IPv4 address as a string, or None if not available.
+        """
+        resolver = dns.resolver.Resolver(configure=nameserver is None)
+        if nameserver:
+            resolver.nameservers = [nameserver]
+        resolver.port = port
+        resolver.lifetime = timeout
+        resolver.timeout = timeout
+
+        try:
+            # dnspython 1.x API uses query(); resolve() is 2.x+
+            answer = resolver.query(hostname, "A", tcp=tcp)
+        except (
+            dns.exception.Timeout,
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.resolver.NoNameservers
+        ) as e:
+            logger.warning("DNS A record query failed for %s: %s", hostname, e)
+            return None
+        except dns.exception.DNSException as e:
+            logger.error("Unexpected DNS error for %s: %s", hostname, e)
+            return None
+
+        if getattr(answer, 'rrset', None) is None or len(answer) == 0:
+            logger.debug("No A record for %s", hostname)
+            return None
+
+        try:
+            # Return the first A record as a string
+            return str(answer[0])
+        except Exception as e:
+            logger.error(
+                "Failed to parse A record for %s: %s", hostname, e
+            )
+            return None
+
+    @staticmethod
     def resolve_soa_serial(
         zone: str,
         nameserver: str,
