@@ -2,8 +2,8 @@ import logging
 import socket
 from typing import Optional
 
-import dns.resolver  # type: ignore[import-untyped]
 import dns.exception  # type: ignore[import-untyped]
+import dns.resolver  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ class DNSChecker(object):
 
         try:
             # Return the first A record as a string
+            logger.debug("Resolved A record for %s: %s", hostname, answer[0])
             return str(answer[0])
         except Exception as e:
             logger.error(
