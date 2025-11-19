@@ -99,7 +99,6 @@ def test_parse_zone_info_updates_zone_and_metrics():
     }
     zc = zm.parse_zone_info(entry)
     assert zc.rr_count == 5
-    assert zc.has_rr_count is True
     assert zc.primary_nameserver.serial == 2025010101
     assert zc.synced is False
 
@@ -156,7 +155,6 @@ def test_update_metrics_skips_until_rr_count():
     # After setting rr_count and has_rr_count True, update should publish
     zc = zm.zones["example.com."]
     zc.rr_count = 7
-    zc.has_rr_count = True
     zc.synced = True
     zm.update_metrics()
 

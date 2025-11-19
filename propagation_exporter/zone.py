@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional, Pattern, Union
 
 import yaml
 
-from .dns_utils import DNSChecker
 from . import metrics
+from .dns_utils import DNSChecker
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +45,17 @@ class ZoneConfig(object):
     def __init__(
         self,
         name: str,
-        rr_count: int,
         primary_nameserver: ZoneInfo,
         downstream_nameservers: List[ZoneInfo],
-        synced: bool = False,
+        rr_count: int = 0,
+        # Assume the zone is in sync initially
+        synced: bool = True,
     ) -> None:
         self.name = name
         self.rr_count = rr_count
         self.primary_nameserver = primary_nameserver
         self.downstream_nameservers = downstream_nameservers
         self.synced = synced
-        self.has_rr_count = False  # Track if we've parsed the RR count from journal
 
     def check_downstream_propagation(self) -> None:
         """Check if the zone is properly propagated to all downstream nameservers."""
@@ -64,8 +64,8 @@ class ZoneConfig(object):
         primary_update_time = self.primary_nameserver.update_time
         self.synced = False
 
-        from time import sleep
         from datetime import datetime as _dt
+        from time import sleep
 
         while True:
             current_time = _dt.now()
@@ -91,14 +91,7 @@ class ZoneConfig(object):
                     "Zone %s: %s serial=%s (primary=%s)",
                     zone, ns.name_server, downstream_serial, primary_serial
                 )
-                if downstream_serial != primary_serial:
-                    logger.warning(
-                        "Downstream %s does not match %s: downstream=%s != primary=%s",
-                        ns.name_server,
-                        zone,
-                        downstream_serial,
-                        primary_serial,
-                    )
+                if downstream_serial != primary_serial :
                     ns.serial = downstream_serial
                     ns.update_time = _dt.now()
 
@@ -109,6 +102,14 @@ class ZoneConfig(object):
                         nameserver=ns.dns_name,
                         serial=str(primary_serial)
                     ).set(propagation_delay)
+                    if propagation_delay > 60:
+                        logger.warning(
+                            "Downstream %s does not match %s: downstream=%s != primary=%s",
+                            ns.name_server,
+                            zone,
+                            downstream_serial,
+                            primary_serial,
+                        )
                     continue
 
                 # Nameserver is now synced - record the delay at this moment
@@ -244,7 +245,6 @@ class ZoneManager(object):
 
         zone_config = self.zones[zone]
         zone_config.rr_count = rr_count
-        zone_config.has_rr_count = True  # Mark that we have a valid RR count
         zone_config.synced = False
         zone_config.primary_nameserver.serial = int(serial)
         zone_config.primary_nameserver.update_time = update_time
@@ -260,15 +260,12 @@ class ZoneManager(object):
         """Update Prometheus metrics for all zones."""
         for zone_name, zone_config in self.zones.items():
             # Only export RR count metric if we've parsed it from the journal
-            if zone_config.has_rr_count:
-                metrics.zone_rr_count.labels(zone=zone_name).set(zone_config.rr_count)
-                metrics.zone_in_sync.labels(zone=zone_name).set(1 if zone_config.synced else 0)
-                logger.debug(
-                    "Updated metric for zone %s: rr_count=%d, synced=%s",
-                    zone_name, zone_config.rr_count, zone_config.synced
-                )
-            else:
-                logger.debug("Skipping metrics for zone %s: no RR count parsed yet", zone_name)
+            metrics.zone_in_sync.labels(zone=zone_name).set(1 if zone_config.synced else 0)
+            metrics.zone_rr_count.labels(zone=zone_name).set(zone_config.rr_count)
+            logger.debug(
+                "Updated metric for zone %s: rr_count=%d, synced=%s",
+                zone_name, zone_config.rr_count, zone_config.synced
+            )
 
     def start_metrics_updater(self, interval: int = 60) -> None:
         """Start a background thread to update Prometheus metrics periodically."""
