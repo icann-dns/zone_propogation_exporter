@@ -91,7 +91,7 @@ class ZoneConfig(object):
                     "Zone %s: %s serial=%s (primary=%s)",
                     zone, ns.name_server, downstream_serial, primary_serial
                 )
-                if downstream_serial != primary_serial :
+                if downstream_serial != primary_serial:
                     ns.serial = downstream_serial
                     ns.update_time = _dt.now()
 
