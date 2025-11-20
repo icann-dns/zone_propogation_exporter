@@ -25,6 +25,35 @@ def test_zone_info_uses_dns_name_when_resolution_fails():
         assert zi.name_server == "ns1.example.com"
 
 
+def test_zone_config_str():
+    """Test that ZoneConfig.__str__ returns the expected format."""
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name="example.com.", serial=0, update_time=datetime.min, dns_name="192.0.2.1")
+        zc = ZoneConfig(name="example.com.", rr_count=0, primary_nameserver=zi_primary, downstream_nameservers=[])
+    assert str(zc) == "ZoneConfig(example.com.)"
+
+
+def test_zone_config_repr():
+    """Test that ZoneConfig.__repr__ returns the expected format."""
+    with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
+        zi_primary = ZoneInfo(name="example.com.", serial=100, update_time=datetime.min, dns_name="ns1.example.com")
+        zi_downstream1 = ZoneInfo(name="example.com.", serial=100, update_time=datetime.min, dns_name="ns2.example.com")
+        zi_downstream2 = ZoneInfo(name="example.com.", serial=100, update_time=datetime.min, dns_name="ns3.example.com")
+        zc = ZoneConfig(
+            name="example.com.",
+            rr_count=42,
+            primary_nameserver=zi_primary,
+            downstream_nameservers=[zi_downstream1, zi_downstream2],
+            synced=True
+        )
+    repr_str = repr(zc)
+    assert "ZoneConfig(name=example.com." in repr_str
+    assert "rr_count=42" in repr_str
+    assert "primary_nameserver=ns1.example.com" in repr_str
+    assert "downstream_nameservers=['ns2.example.com', 'ns3.example.com']" in repr_str
+    assert "synced=True" in repr_str
+
+
 def make_zone_manager_single(zone_name: str = "example.com.") -> ZoneManager:
     with patch("propagation_exporter.zone.DNSChecker.resolve_a_record", return_value=None):
         zi_primary = ZoneInfo(name=zone_name, serial=0, update_time=datetime.min, dns_name="192.0.2.1")

@@ -57,6 +57,17 @@ class ZoneConfig(object):
         self.downstream_nameservers = downstream_nameservers
         self.synced = synced
 
+    def __repr__(self) -> str:
+        return (
+            f"ZoneConfig(name={self.name}, rr_count={self.rr_count}, "
+            f"primary_nameserver={self.primary_nameserver.dns_name}, "
+            f"downstream_nameservers={[ns.dns_name for ns in self.downstream_nameservers]}, "
+            f"synced={self.synced})"
+        )
+
+    def __str__(self) -> str:
+        return f"ZoneConfig({self.name})"
+
     def check_downstream_propagation(self) -> None:
         """Check if the zone is properly propagated to all downstream nameservers."""
         zone = self.name
