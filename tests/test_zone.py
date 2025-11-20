@@ -176,6 +176,44 @@ def test_check_downstream_propagation_eventually_syncs(mock_sleep: MagicMock, mo
     assert all(ns.serial == 100 for ns in zc.downstream_nameservers)
 
 
+@patch("propagation_exporter.zone.metrics.zone_propagation_delay")
+@patch("propagation_exporter.zone.DNSChecker.resolve_soa_serial")
+@patch("time.sleep", return_value=None)
+def test_check_downstream_propagation_warns_on_long_delay(mock_sleep: MagicMock, mock_resolve: MagicMock, mock_delay_gauge: MagicMock):
+    """Test that warning is logged when propagation delay exceeds 60 seconds (lines 117-124)."""
+    zone_name = "example.com."
+    zm = make_zone_manager_single(zone_name)
+    zc = zm.zones[zone_name]
+
+    # Set a primary serial and update time more than 60 seconds ago
+    zc.primary_nameserver.serial = 200
+    zc.primary_nameserver.update_time = datetime.now() - timedelta(seconds=65)
+
+    # Side-effect: first call returns wrong serial (99), second call returns correct serial (200)
+    call_count = [0]
+
+    def side_effect(zone: str, ns: str, **kwargs: Any):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # First iteration: wrong serial for ns2
+            return 99 if ns == "192.0.2.2" else 200
+        # Second iteration: correct serial for all
+        return 200
+
+    mock_resolve.side_effect = side_effect
+
+    # Patch logger to verify warning is called
+    with patch("propagation_exporter.zone.logger") as mock_logger:
+        zc.check_downstream_propagation()
+
+        # Verify warning was logged for mismatch with delay > 60 seconds
+        warning_calls = [call for call in mock_logger.warning.call_args_list
+                        if "does not match" in str(call)]
+        assert len(warning_calls) > 0, "Expected warning log for serial mismatch with delay > 60s"
+
+    assert zc.synced is True
+
+
 def test_update_metrics_skips_until_rr_count():
     zm = make_zone_manager_single()
     # Initially has_rr_count is False; update_metrics should not crash

@@ -98,7 +98,7 @@ class ZoneConfig(object):
                     )
                     continue
 
-                logger.info(
+                logger.debug(
                     "Zone %s: %s serial=%s (primary=%s)",
                     zone, ns.name_server, downstream_serial, primary_serial
                 )
